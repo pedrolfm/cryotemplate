@@ -46,13 +46,24 @@ class Interface:
     def callbackString(self, msg):
         rospy.loginfo(rospy.get_caller_id() + 'Received command %s', msg.name)
 
+#TODO ==========
         if msg.name == 'INIT':
             initCondition = msg.data[4] + msg.data[5]
         elif msg.name == 'MOVE':
-            self.state = MOVE
+            rospy.wait_for_service('move_motors')
+            try:
+                move_motors = rospy.ServiceProxy('move_motors', Config)
+                if (move_motors(angles)):
+                    rospy.loginfo("motors moved")
+                else:
+                    rospy.loginfo("Could not initialize motors")
+            except rospy.ServiceException as e:
+                rospy.loginfo("Controller service call failed: %s" % e)
         else:
             rospy.loginfo('Invalid message, returning to IDLE state')
             self.state = IDLE
+#================
+
 
     # Received TRANSFORM from 3DSlicer OpenIGTLink Bridge
     def callbackTransformation(self, data):
