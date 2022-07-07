@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import rospy
 from ros_igtl_bridge.msg import igtltransform, igtlstring
 from ros_galil_2022.srv import Status, Config
