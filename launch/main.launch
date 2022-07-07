@@ -1,0 +1,4 @@
+<launch>
+   <node pkg="cryotemplate" type="main.py" name="main.py" output="screen">
+   </node>
+</launch>
