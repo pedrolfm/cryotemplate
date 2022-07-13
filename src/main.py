@@ -1,7 +1,9 @@
+#!/usr/bin/env python
+
 import rospy
 from ros_igtl_bridge.msg import igtltransform, igtlstring
-from ros_galil_2022.srv import Status, Config
-from std_msgs.msg import Float64
+#from ros_galil_2022.srv import Status, Config
+from std_msgs.msg import Float32
 import numpy
 
 # State Machine
@@ -10,9 +12,13 @@ CONNECT = 1 # robot connected to 3DSlicer
 INIT = 2    # initializing
 ZFRAME = 3  # define zFrame transform
 IDLE = 4    # waiting
-TARGET = 5  # define target
+ANGLE = 5  # define target
 MOVE = 6    # move to target
 
+# UPDATE WITH VALUES PROVIDED BY PSI
+CONST1 = 1000
+CONST2 = 2000
+# =================================
 
 class Interface:
     def __init__(self):
@@ -21,16 +27,16 @@ class Interface:
         rospy.Subscriber('IGTL_STRING_IN', igtlstring, self.callbackString)
         rospy.Subscriber('IGTL_TRANSFORM_IN', igtltransform, self.callbackTransformation)
 
-        self.angle1 = rospy.Publisher('IGTL_STRING_OUT', Float64)
-        self.angle2 = rospy.Publisher('IGTL_STRING_OUT', igtlstring, queue_size=10)
+        self.angle1 = rospy.Publisher('alpha', Float32,queue_size=10)
+        self.angle2 = rospy.Publisher('beta', Float32,queue_size=10)
 
+        self.action_client = ActionClient(self, , '/move_flag')
 
         # Variables
         #TODO: Discuss definition of flags and states
         self.flagInit = False
         self.flagAngle = False
         self.state = IDLE
-
         # Initialize the node and name it.
         rospy.init_node('interface')
         rospy.loginfo('Interface Node')
@@ -50,15 +56,7 @@ class Interface:
         if msg.name == 'INIT':
             initCondition = msg.data[4] + msg.data[5]
         elif msg.name == 'MOVE':
-            rospy.wait_for_service('move_motors')
-            try:
-                move_motors = rospy.ServiceProxy('move_motors', Config)
-                if (move_motors(angles)):
-                    rospy.loginfo("motors moved")
-                else:
-                    rospy.loginfo("Could not initialize motors")
-            except rospy.ServiceException as e:
-                rospy.loginfo("Controller service call failed: %s" % e)
+            self.state = MOVE
         else:
             rospy.loginfo('Invalid message, returning to IDLE state')
             self.state = IDLE
@@ -73,13 +71,21 @@ class Interface:
                 [data.transform.translation.x, data.transform.translation.y, data.transform.translation.z])
             quat = numpy.array([data.transform.rotation.w, data.transform.rotation.x, data.transform.rotation.y,
                                 data.transform.rotation.z])
-            self.angles = self.quaternion2ht(quat, pos)
+            self.angles = self.quaternion2angle(quat)
             self.flagAngle = True
-
-
+            self.state = ANGLE
         else:
             rospy.loginfo('Invalid message, returning to IDLE state')
             self.state = IDLE
+
+    def quaternion2angle(self,quat):
+         o1 = 2*(quat[0] * quat[1] + quat[2] * quat[3])
+         o2 = 1-2*(quat[1]*quat[1]+quat[2]*quat[2])
+         angle1 = numpy.arctan2(o1,o2)
+         angle2 = numpy.arcsin(2*(quat[0]*quat[2]-quat[3]*quat[1]))
+         angle3 = numpy.arctan2(2*(quat[0]*quat[3]+quat[1]*quat[2]),1-2*(quat[2]*quat[2]+quat[3]*quat[3]))
+         print(angle1)
+         return [angle1,angle2,angle3]
 
     def quaternion2ht(self,quat,pos):
         H = numpy.matrix('1.0 0.0 0.0 0.0; 0.0 1.0 0.0 0.0 ; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0')
@@ -113,11 +119,17 @@ def main():
         #NONE State - Wait for OpenIGTLink Connection
         if (interface.state == IDLE):
             rospy.loginfo("Waiting")
-
         elif (interface.state==MOVE):
+            rospy.loginfo("Move mode.")
             if (interface.flagAngle):
                 rospy.loginfo("Move the robot...")
-
+            interface.state = IDLE
+        elif (interface.state==ANGLE):
+            temp = Float32
+            temp = interface.angles[0]
+            rospy.loginfo("received angle insformation")
+            interface.angle1.publish(interface.angles[0])
+            interface.angle2.publish(interface.angles[1])
         #Do nothing
         else:
             pass
@@ -125,3 +137,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

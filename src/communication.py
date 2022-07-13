@@ -116,14 +116,7 @@ class Communication:
 
     # Initialize requested motors
     def move_motors(self, req):
-        # Horizontal,'0' / Vertical,'1'
-        motor = {'US': ['HUSA', '', 'HUSB', ''],
-                 'LT': ['HPELF', ',0', 'HPEUP', ',1'], 'LC': ['HPELF', ',0', 'HPEVC', ',1'],
-                 'LB': ['HPELF', ',0', 'HPEDW', ',1'],
-                 'RT': ['HPERT', ',0', 'HPEUP', ',1'], 'RC': ['HPERT', ',0', 'HPEVC', ',1'],
-                 'RB': ['HPERT', ',0', 'HPEDW', ',1'],
-                 'CT': ['HPEHC', ',0', 'HPEUP', ',1'], 'CC': ['HPEHC', ',0', 'HPEVC', ',1'],
-                 'CB': ['HPEHC', ',0', 'HPEDW', ',1']}
+        print("here")
 
 
 def main():
