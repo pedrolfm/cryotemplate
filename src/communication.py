@@ -3,7 +3,7 @@
 import rospy
 import serial
 import time
-from ros_galil_2022.srv import Status, Config
+from cryotemplate.srv import Status, Angles
 
 SHARP = chr(35)  # String '#'
 
@@ -21,7 +21,7 @@ class Communication:
         rospy.loginfo('Communication Node')
 
         # Services
-        rospy.Service('move_motors', Config, self.move_motors)
+        rospy.Service('move_motors', Angles, self.move_motors)
 
         # Open serial connection with Galil
         if self.open_connection():
@@ -117,6 +117,7 @@ class Communication:
     # Initialize requested motors
     def move_motors(self, req):
         print("here")
+        print(req)
 
 
 def main():

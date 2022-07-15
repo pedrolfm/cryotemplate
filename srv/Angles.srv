@@ -1,0 +1,4 @@
+float ang1    # request
+float ang2
+---
+bool success   # response

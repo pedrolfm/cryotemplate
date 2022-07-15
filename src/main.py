@@ -5,6 +5,7 @@ from ros_igtl_bridge.msg import igtltransform, igtlstring
 #from ros_galil_2022.srv import Status, Config
 from std_msgs.msg import Float32
 import numpy
+from cryotemplate.srv import Status, Angles
 
 # State Machine
 NONE = 0    # robot not connected yet
@@ -30,7 +31,7 @@ class Interface:
         self.angle1 = rospy.Publisher('alpha', Float32,queue_size=10)
         self.angle2 = rospy.Publisher('beta', Float32,queue_size=10)
 
-        self.action_client = ActionClient(self, , '/move_flag')
+        init_motors = rospy.ServiceProxy('move_motors', Angles)
 
         # Variables
         #TODO: Discuss definition of flags and states
@@ -74,6 +75,9 @@ class Interface:
             self.angles = self.quaternion2angle(quat)
             self.flagAngle = True
             self.state = ANGLE
+            print("received 1")
+            rospy.wait_for_service('move_motors')
+            print("received 2")
         else:
             rospy.loginfo('Invalid message, returning to IDLE state')
             self.state = IDLE
