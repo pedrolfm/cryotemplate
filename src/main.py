@@ -33,6 +33,8 @@ class Interface:
         self.angle2 = rospy.Publisher('beta', Float32,queue_size=10)
 
         self.move_motors = rospy.ServiceProxy('move_motors', Angles)
+        self.getStatus = rospy.ServiceProxy('get_status', Status)
+
 
         self.test = Angles
         self.test.data = str(1121)
@@ -50,9 +52,21 @@ class Interface:
         self.rate = rospy.Rate(10) #10hz
 
 
+        #Published topics
+        timer_period = 0.5  # seconds
+        self.timer = self.create_timer(timer_period, self.getAndSendAtatusCallback)
+
+
 #################################################################################################
 #####    Callback Functions for subscribed topics     ###########################################
 #################################################################################################
+
+    def getAndSendAtatusCallback(self):
+        print("testing timer")
+        rospy.wait_for_service('move_motors')
+        self.getStatus()
+
+
 
     # Received STRING from 3DSlicer OpenIGTLink Bridge
     def callbackString(self, msg):
@@ -62,7 +76,11 @@ class Interface:
         if msg.name == 'INIT':
             initCondition = msg.data[4] + msg.data[5]
         elif msg.name == 'MOVE':
-            self.state = MOVE
+            if self.flagAngle:
+                rospy.wait_for_service('move_motors')
+                self.move_motors(self.angles[0],self.angles[1])
+            else:
+                rospy.loginfo('No angles sent yet')
         else:
             rospy.loginfo('Invalid message, returning to IDLE state')
             self.state = IDLE
@@ -79,11 +97,6 @@ class Interface:
                                 data.transform.rotation.z])
             self.angles = self.quaternion2angle(quat)
             self.flagAngle = True
-            rospy.wait_for_service('move_motors')
-            self.state = ANGLE
-            print("received 1")
-            self.move_motors(2,3)
-            print("received 2")
         else:
             rospy.loginfo('Invalid message, returning to IDLE state')
             self.state = IDLE

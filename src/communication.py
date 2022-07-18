@@ -21,8 +21,9 @@ class Communication:
         rospy.loginfo('Communication Node')
 
         # Services
-        print("teste 12134")
+
         rospy.Service('move_motors', Angles, self.move_motors)
+        rospy.Service('get_status', Status, self.getStatus)
 
         # Open serial connection with Galil
         if self.open_connection():
@@ -121,6 +122,11 @@ class Communication:
         print("here")
         print(req)
         return True
+
+    def getStatus(self):
+        rospy.loginfo('here status')
+        return "hare is status"
+
 
 def main():
     # Go to class functions that do all the heavy lifting. Do error checking.

@@ -1,2 +1,2 @@
 ---
-bool status     # status
+string status     # status
