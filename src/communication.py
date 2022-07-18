@@ -21,6 +21,7 @@ class Communication:
         rospy.loginfo('Communication Node')
 
         # Services
+        print("teste 12134")
         rospy.Service('move_motors', Angles, self.move_motors)
 
         # Open serial connection with Galil
@@ -116,9 +117,10 @@ class Communication:
 
     # Initialize requested motors
     def move_motors(self, req):
+        rospy.loginfo('here')
         print("here")
         print(req)
-
+        return True
 
 def main():
     # Go to class functions that do all the heavy lifting. Do error checking.

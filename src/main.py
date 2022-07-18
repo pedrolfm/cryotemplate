@@ -2,10 +2,11 @@
 
 import rospy
 from ros_igtl_bridge.msg import igtltransform, igtlstring
+from cryotemplate.srv import Status, Angles
 #from ros_galil_2022.srv import Status, Config
 from std_msgs.msg import Float32
 import numpy
-from cryotemplate.srv import Status, Angles
+
 
 # State Machine
 NONE = 0    # robot not connected yet
@@ -31,7 +32,10 @@ class Interface:
         self.angle1 = rospy.Publisher('alpha', Float32,queue_size=10)
         self.angle2 = rospy.Publisher('beta', Float32,queue_size=10)
 
-        init_motors = rospy.ServiceProxy('move_motors', Angles)
+        self.move_motors = rospy.ServiceProxy('move_motors', Angles)
+
+        self.test = Angles
+        self.test.data = str(1121)
 
         # Variables
         #TODO: Discuss definition of flags and states
@@ -44,6 +48,7 @@ class Interface:
 
         # Set timer for state machine loop
         self.rate = rospy.Rate(10) #10hz
+
 
 #################################################################################################
 #####    Callback Functions for subscribed topics     ###########################################
@@ -74,9 +79,10 @@ class Interface:
                                 data.transform.rotation.z])
             self.angles = self.quaternion2angle(quat)
             self.flagAngle = True
+            rospy.wait_for_service('move_motors')
             self.state = ANGLE
             print("received 1")
-            rospy.wait_for_service('move_motors')
+            self.move_motors(2,3)
             print("received 2")
         else:
             rospy.loginfo('Invalid message, returning to IDLE state')
@@ -134,6 +140,7 @@ def main():
             rospy.loginfo("received angle insformation")
             interface.angle1.publish(interface.angles[0])
             interface.angle2.publish(interface.angles[1])
+            interface.state = IDLE
         #Do nothing
         else:
             pass

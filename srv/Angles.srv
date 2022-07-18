@@ -1,4 +1,4 @@
-float ang1    # request
-float ang2
+float64 ang1    # request
+float64 ang2    # request
 ---
 bool success   # response
