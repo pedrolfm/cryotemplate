@@ -28,6 +28,7 @@ class Interface:
         rospy.Subscriber('IGTL_STRING_IN', igtlstring, self.callbackString)
         rospy.Subscriber('IGTL_TRANSFORM_IN', igtltransform, self.callbackTransformation)
 
+        self.statusMsg = rospy.Publisher('IGTL_STRING_OUT',igtlstring,queue_size=10)
         self.angle1 = rospy.Publisher('alpha', Float32,queue_size=10)
         self.angle2 = rospy.Publisher('beta', Float32,queue_size=10)
 
@@ -42,12 +43,15 @@ class Interface:
         self.flagInit = False
         self.flagAngle = False
         self.state = IDLE
+        self.statusData = igtlstring()
+        self.statusData.name = "status"
+        
         # Initialize the node and name it.
         rospy.init_node('interface')
         rospy.loginfo('Interface Node')
 
         # Set timer for state machine loop
-        self.rate = rospy.Rate(0.1) #10hz
+        self.rate = rospy.Rate(0.5) #10hz
 
 
         #self.rate = rospy.Rate(10)
@@ -135,8 +139,9 @@ def main():
         #NONE State - Wait for OpenIGTLink Connection
         if (interface.state == IDLE):
             rospy.loginfo("Waiting")
-            data = interface.getStatus()
-            print(data)
+            interface.statusData.data = str(interface.getStatus())
+            interface.statusMsg.publish(interface.statusData)
+            print(interface.statusData.data)
         elif (interface.state==MOVE):
             rospy.loginfo("Move mode.")
             if (interface.flagAngle):
