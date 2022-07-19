@@ -8,8 +8,8 @@ from cryotemplate.srv import Status, Angles
 SHARP = chr(35)  # String '#'
 
 # Relationship between encoder counts and mm:
-US_MM_2_COUNT = 2000.0 / 2.5349
-PE_MM_2_COUNT = 500  # 5500.0/16.51
+US_DEG_2_COUNT = 2000.0 / 2.5349
+PE_DEG_2_COUNT = 500  # 5500.0/16.51
 
 
 class Communication:
@@ -24,11 +24,13 @@ class Communication:
 
         rospy.Service('move_motors', Angles, self.move_motors)
         rospy.Service('get_status', Status, self.getStatus)
+        rospy.loginfo('Services implemented')
 
         # Open serial connection with Galil
         if self.open_connection():
             # Set all motors to absolute motion
-            if self.set_absolute_motion(['A', 'B', 'C', 'D']) and self.check_controller():
+            self.absoluteMode = self.set_absolute_motion(['A', 'B'])
+            if self.absoluteMode:
                 rospy.loginfo('Controller initialized')
 
     #################################################################################################
@@ -69,46 +71,40 @@ class Communication:
                 return 0
         return 1
 
-    # Verify controller configuration (motors and encoders)
-    # TODO: Find out if really necessary
-    def check_controller(self):
+    # Send motor absolute position
+    def SendAbsolutePosition(self,Channel,X):
         try:
-            self.ser.write(str("EO 0\r"))
-            time.sleep(0.1)
-
-            self.ser.flushInput()
-            self.ser.write(str("MT ?\r"))
-            time.sleep(0.1)
-            MT1 = float(self.ser.read(4))
-
-            self.ser.flushInput()
-            self.ser.write(str("MT ,?\r"))
-            time.sleep(0.1)
-            MT2 = float(self.ser.read(4))
-
-            self.ser.flushInput()
-            self.ser.write(str("CE ?\r"))
-            time.sleep(0.1)
-            CE1 = float(self.ser.read(2))
-
-            self.ser.flushInput()
-            self.ser.write(str("CE ,?\r"))
-            time.sleep(0.1)
-            CE2 = float(self.ser.read(2))
-
-            if MT1 == 1.0 and MT2 == 1.0 and CE1 == 0.0 and CE2 == 0.0:
-                rospy.loginfo('Controller verified')
+            if self.absoluteMode:
+                self.ser.write(str("SH;"))
+                time.sleep(0.01)
+                self.ser.write(str("PT%s=1;" % Channel))
+                time.sleep(0.01)
+                self.ser.write(str("PA%s=%d;" % (Channel,X)))
                 return 1
             else:
-                rospy.loginfo('Wrong motor or encoder configuration - Check Galil setup')
+                rospy.loginfo("*** PA not available ***")
                 return 0
-
         except:
-            rospy.loginfo("*** could not send request to Galil ***")
+            rospy.loginfo("*** could not send command ***")
             return 0
 
+    def getMotorPosition(self):
+        try:
+            self.ser.flushInput()
+            time.sleep(0.5)
+            self.ser.write(str("TP;"))
+            time.sleep(0.1)
+            bytesToRead = self.ser.inWaiting()
+            data_temp = self.ser.read(bytesToRead-3)
+            print(data_temp)
+        except:
+            print("*** could not send command ***")
+            return str(0)
+        return data_temp
+
+
     #################################################################################################
-    #####    Service Functions from Controller node    ##############################################
+    #####    Service Functions from Communication node    ##############################################
     #################################################################################################
 
     # Return current serial connection status with Galil controller
@@ -118,14 +114,14 @@ class Communication:
 
     # Initialize requested motors
     def move_motors(self, req):
-        rospy.loginfo('here')
-        print("here")
-        print(req)
+        rospy.loginfo('Send commands to Galil')
+        SendAbsolutePosition("A",req[0]*US_DEG_2_COUNT)
+        SendAbsolutePosition("A",req[1]*PE_DEG_2_COUNT)
         return True
 
-    def getStatus(self):
+    def getStatus(self,req):
         rospy.loginfo('here status')
-        return "hare is status"
+        return self.getMotorPosition()
 
 
 def main():

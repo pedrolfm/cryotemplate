@@ -24,7 +24,6 @@ CONST2 = 2000
 
 class Interface:
     def __init__(self):
-
         # ROS Topics
         rospy.Subscriber('IGTL_STRING_IN', igtlstring, self.callbackString)
         rospy.Subscriber('IGTL_TRANSFORM_IN', igtltransform, self.callbackTransformation)
@@ -32,13 +31,12 @@ class Interface:
         self.angle1 = rospy.Publisher('alpha', Float32,queue_size=10)
         self.angle2 = rospy.Publisher('beta', Float32,queue_size=10)
 
+        print("1")
         self.move_motors = rospy.ServiceProxy('move_motors', Angles)
+        print("2")
         self.getStatus = rospy.ServiceProxy('get_status', Status)
 
-
-        self.test = Angles
-        self.test.data = str(1121)
-
+        print("tsete ")
         # Variables
         #TODO: Discuss definition of flags and states
         self.flagInit = False
@@ -49,13 +47,10 @@ class Interface:
         rospy.loginfo('Interface Node')
 
         # Set timer for state machine loop
-        self.rate = rospy.Rate(10) #10hz
+        self.rate = rospy.Rate(0.1) #10hz
 
 
-        #Published topics
-        timer_period = 0.5  # seconds
-        self.timer = self.create_timer(timer_period, self.getAndSendAtatusCallback)
-
+        #self.rate = rospy.Rate(10)
 
 #################################################################################################
 #####    Callback Functions for subscribed topics     ###########################################
@@ -63,16 +58,13 @@ class Interface:
 
     def getAndSendAtatusCallback(self):
         print("testing timer")
-        rospy.wait_for_service('move_motors')
-        self.getStatus()
-
+        rospy.wait_for_service('get_status')
+        self.getStatus("teste")
 
 
     # Received STRING from 3DSlicer OpenIGTLink Bridge
     def callbackString(self, msg):
         rospy.loginfo(rospy.get_caller_id() + 'Received command %s', msg.name)
-
-#TODO ==========
         if msg.name == 'INIT':
             initCondition = msg.data[4] + msg.data[5]
         elif msg.name == 'MOVE':
@@ -80,7 +72,7 @@ class Interface:
                 rospy.wait_for_service('move_motors')
                 self.move_motors(self.angles[0],self.angles[1])
             else:
-                rospy.loginfo('No angles sent yet')
+                rospy.loginfo('No angles received yet')
         else:
             rospy.loginfo('Invalid message, returning to IDLE state')
             self.state = IDLE
@@ -96,6 +88,7 @@ class Interface:
             quat = numpy.array([data.transform.rotation.w, data.transform.rotation.x, data.transform.rotation.y,
                                 data.transform.rotation.z])
             self.angles = self.quaternion2angle(quat)
+            print(self.angles)
             self.flagAngle = True
         else:
             rospy.loginfo('Invalid message, returning to IDLE state')
@@ -107,7 +100,6 @@ class Interface:
          angle1 = numpy.arctan2(o1,o2)
          angle2 = numpy.arcsin(2*(quat[0]*quat[2]-quat[3]*quat[1]))
          angle3 = numpy.arctan2(2*(quat[0]*quat[3]+quat[1]*quat[2]),1-2*(quat[2]*quat[2]+quat[3]*quat[3]))
-         print(angle1)
          return [angle1,angle2,angle3]
 
     def quaternion2ht(self,quat,pos):
@@ -139,9 +131,12 @@ def main():
         rospy.loginfo('Could not initialize Interface Node')
 
     while not rospy.is_shutdown():
+        interface.rate.sleep()
         #NONE State - Wait for OpenIGTLink Connection
         if (interface.state == IDLE):
             rospy.loginfo("Waiting")
+            data = interface.getStatus()
+            print(data)
         elif (interface.state==MOVE):
             rospy.loginfo("Move mode.")
             if (interface.flagAngle):
