@@ -32,12 +32,9 @@ class Interface:
         self.angle1 = rospy.Publisher('alpha', Float32,queue_size=10)
         self.angle2 = rospy.Publisher('beta', Float32,queue_size=10)
 
-        print("1")
         self.move_motors = rospy.ServiceProxy('move_motors', Angles)
-        print("2")
         self.getStatus = rospy.ServiceProxy('get_status', Status)
 
-        print("tsete ")
         # Variables
         #TODO: Discuss definition of flags and states
         self.flagInit = False
@@ -51,10 +48,10 @@ class Interface:
         rospy.loginfo('Interface Node')
 
         # Set timer for state machine loop
-        self.rate = rospy.Rate(0.5) #10hz
+        self.rate = rospy.Rate(0.5) 
 
 
-        #self.rate = rospy.Rate(10)
+        
 
 #################################################################################################
 #####    Callback Functions for subscribed topics     ###########################################
